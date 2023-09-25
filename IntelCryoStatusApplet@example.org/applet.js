@@ -49,10 +49,10 @@ IntelCryoTEC.prototype = {
       let data = JSON.parse(fileContents[1]);
 
       let isPidRunning = data.heartbeat["PID is running"];
-      let timestamp = data["timestamp"]
-      current_timestamp = Math.floor(Date.now() / 1000);
+      let timestamp = data.timestamp
+      let current_timestamp = Math.floor(Date.now() / 1000);
 
-      if (current_timestamp - timestamp > 5) {
+      if ((current_timestamp - timestamp) > 5) {
         this._error_state("Service not running")
       } else if (!isPidRunning) {
         this._error_state("Cooler is in standby")
