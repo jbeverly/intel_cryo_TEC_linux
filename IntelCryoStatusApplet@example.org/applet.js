@@ -1,23 +1,34 @@
 const Applet = imports.ui.applet;
 const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 const St = imports.gi.St;
 const PopupMenu = imports.ui.popupMenu;
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 
-function MyApplet(metadata, orientation, panelHeight, instanceId) {
+function IntelCryoTEC(metadata, orientation, panelHeight, instanceId) {
   this._init(metadata, orientation, panelHeight, instanceId);
 }
 
-MyApplet.prototype = {
+IntelCryoTEC.prototype = {
   __proto__: Applet.IconApplet.prototype,
 
   _init: function(metadata, orientation, panelHeight, instanceId) {
-    this.metadata = metadata;
     Applet.IconApplet.prototype._init.call(this, orientation, panelHeight, instanceId);
-    this.set_applet_icon_path(metadata.path + "/blue.png"); // Default to blue.png as the app icon
+
+    // Set the metadata
+    this.metadata = metadata;
+
+    // Set the default icon
+    this.set_applet_icon_path(this.metadata.path + "/blue.png");
     this.set_applet_tooltip("Loading...");
 
+    // Initialize the menu
+    this.menuManager = new PopupMenu.PopupMenuManager(this);
+    this.menu = new Applet.AppletPopupMenu(this, orientation);
+    this.menuManager.addMenu(this.menu);
+
+    // Start the refreshing process
     this._refresh();
     this._timeout = Mainloop.timeout_add_seconds(1, Lang.bind(this, this._refresh));
   },
@@ -37,8 +48,9 @@ MyApplet.prototype = {
 
       let wattage = data.voltage * data.current;
       this.set_applet_tooltip(`Dewpoint: ${data.dewpoint.toFixed(2)}\nTemperature: ${data.temperature.toFixed(2)}\nWattage: ${wattage.toFixed(2)}`);
+
+      this._refreshMenu();
     } catch (error) {
-      // If there's any error reading or parsing the file, set the icon to red
       this.set_applet_icon_path(this.metadata.path + "/red.png");
       this.set_applet_tooltip("Error reading the Intel Cryo TEC status file.");
     }
@@ -46,8 +58,28 @@ MyApplet.prototype = {
     return true; // This ensures the timer continues running
   },
 
+  _refreshMenu: function() {
+    this.menu.removeAll(); // Clear the current menu items
+
+    try {
+      let fileContents = GLib.file_get_contents("/var/run/intel_cryo_tec/status.json");
+      let data = JSON.parse(fileContents[1]);
+
+      // Pretty print the JSON data
+      let formattedData = JSON.stringify(data, null, 4);
+
+      // Add the formatted data to the menu
+      let menuItem = new PopupMenu.PopupMenuItem(formattedData, { reactive: false });
+      this.menu.addMenuItem(menuItem);
+    } catch (error) {
+      let menuItem = new PopupMenu.PopupMenuItem("Error reading the Intel Cryo TEC status file.", { reactive: false });
+      this.menu.addMenuItem(menuItem);
+    }
+  },
+
   on_applet_clicked: function(event) {
     this._refresh();
+    this.menu.toggle(); // Toggle the visibility of the menu
   },
 
   on_applet_removed_from_panel: function() {
@@ -59,6 +91,7 @@ MyApplet.prototype = {
 };
 
 function main(metadata, orientation, panelHeight, instanceId) {
-  let myApplet = new MyApplet(metadata, orientation, panelHeight, instanceId);
-  return myApplet;
+  let intel_cryo_tec = new IntelCryoTEC(metadata, orientation, panelHeight, instanceId);
+  return intel_cryo_tec;
 }
+

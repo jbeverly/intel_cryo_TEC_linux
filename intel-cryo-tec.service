@@ -1,0 +1,15 @@
+[Unit]
+Description=Intel Cryo TEC
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /root/tec.py
+Restart=always
+RestartSec=1
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target
+
