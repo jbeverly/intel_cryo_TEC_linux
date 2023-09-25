@@ -1,5 +1,5 @@
 {
-  "uuid": "IntelCryoStatusApplet@example.org",
+  "uuid": "IntelCryoStatusApplet@jbeverly",
   "name": "Intel Cryo TEC Status Applet",
   "description": "Displays status about your Intel Cryo TEC",
   "author": "Jamie Beverly",
