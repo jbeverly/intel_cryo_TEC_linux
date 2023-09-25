@@ -33,26 +33,37 @@ IntelCryoTEC.prototype = {
     this._timeout = Mainloop.timeout_add_seconds(1, Lang.bind(this, this._refresh));
   },
 
+  _error_state: function(message) {
+    this.set_applet_icon_path(this.metadata.path + "/red.png");
+    this.set_applet_tooltip(message);
+  },
+
+  _okay_state: function(message) {
+    this.set_applet_icon_path(this.metadata.path + "/blue.png");
+    this.set_applet_tooltip(message);
+  },
+
   _refresh: function() {
     try {
       let fileContents = GLib.file_get_contents("/var/run/intel_cryo_tec/status.json");
       let data = JSON.parse(fileContents[1]);
 
       let isPidRunning = data.heartbeat["PID is running"];
+      let timestamp = data["timestamp"]
+      current_timestamp = Math.floor(Date.now() / 1000);
 
-      if (isPidRunning) {
-        this.set_applet_icon_path(this.metadata.path + "/blue.png");
+      if (current_timestamp - timestamp > 5) {
+        this._error_state("Service not running")
+      } else if (!isPidRunning) {
+        this._error_state("Cooler is in standby")
       } else {
-        this.set_applet_icon_path(this.metadata.path + "/red.png");
+        let wattage = data.voltage * data.current;
+        this._okay_state(`Dewpoint: ${data.dewpoint.toFixed(2)}\nTemperature: ${data.temperature.toFixed(2)}\nWattage: ${wattage.toFixed(2)}`);
       }
-
-      let wattage = data.voltage * data.current;
-      this.set_applet_tooltip(`Dewpoint: ${data.dewpoint.toFixed(2)}\nTemperature: ${data.temperature.toFixed(2)}\nWattage: ${wattage.toFixed(2)}`);
 
       this._refreshMenu();
     } catch (error) {
-      this.set_applet_icon_path(this.metadata.path + "/red.png");
-      this.set_applet_tooltip("Error reading the Intel Cryo TEC status file.");
+      this._error_state("Error reading the Intel Cryo TEC status file.")
     }
 
     return true; // This ensures the timer continues running
@@ -91,7 +102,7 @@ IntelCryoTEC.prototype = {
 };
 
 function main(metadata, orientation, panelHeight, instanceId) {
-  let intel_cryo_tec = new IntelCryoTEC(metadata, orientation, panelHeight, instanceId);
-  return intel_cryo_tec;
+  let intelCryoTec = new IntelCryoTEC(metadata, orientation, panelHeight, instanceId);
+  return intelCryoTec;
 }
 

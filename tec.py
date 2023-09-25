@@ -7,6 +7,7 @@ import os.path
 from enum import Enum
 from pprint import pprint
 from typing import Tuple, Any
+import time
 from time import sleep
  
 class OpCode(Enum):
@@ -142,6 +143,7 @@ def monitor_loop():
 
         with open("/var/run/intel_cryo_tec/status.json", "w") as f:
             json.dump({
+                "timestamp" : f"{int(time.time())}",
                 "heartbeat" : heartbeat_details,
                 "voltage" : voltage,
                 "current" : current,
